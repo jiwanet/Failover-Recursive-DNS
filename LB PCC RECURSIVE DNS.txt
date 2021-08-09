@@ -1,0 +1,71 @@
+/interface ethernet
+set [ find default-name=ether1 ] name=ether1-ISP-SATU
+set [ find default-name=ether2 ] name=ether2-ISP-DUA
+set [ find default-name=ether3 ] name="ether3-Lokal1"
+set [ find default-name=ether4 ] name="ether4-Lokal2"
+set [ find default-name=ether5 ] name="ether5-Lokal3"
+
+/interface bridge
+add name=bridge1
+
+/interface bridge port
+add bridge=bridge1 interface="ether3-Lokal1"
+add bridge=bridge1 interface="ether4-Lokal2"
+add bridge=bridge1 interface="ether5-Lokal3"
+
+/ip address
+add address=192.168.10.10/24 interface=ether1-ISP-SATU network=192.168.10.0
+add address=192.168.20.10/24 interface=ether1-ISP-DUA network=192.168.20.0
+add address=192.10.0.1/23 comment="IP HOTSPOT USER" interface=bridge1 network=192.10.0.0
+add address=192.182.1.1/24 comment="IP STATIK USER" interface=bridge1 network=192.182.1.0
+
+/ip firewall nat
+add action=masquerade chain=srcnat out-interface=ether1-ISP-SATU
+add action=masquerade chain=srcnat out-interface=ether2-ISP-DUA
+
+/ip firewall mangle
+add action=accept chain=prerouting dst-address=192.168.10.0/24 in-interface=bridge1
+add action=accept chain=prerouting dst-address=192.168.20.0/24 in-interface=bridge1
+add action=mark-connection chain=prerouting connection-mark=no-mark in-interface=ether1-ISP-SATU \
+    new-connection-mark=ISP1_conn
+add action=mark-connection chain=prerouting connection-mark=no-mark in-interface=ether2-ISP-DUA \
+    new-connection-mark=ISP2_conn
+add action=mark-connection chain=prerouting connection-mark=no-mark dst-address-type=!local hotspot=\
+    auth in-interface=bridge1 new-connection-mark=ISP1_conn passthrough=yes per-connection-classifier=\
+    both-addresses:2/0
+add action=mark-connection chain=prerouting connection-mark=no-mark dst-address-type=!local hotspot=\
+    auth in-interface=bridge1 new-connection-mark=ISP2_conn passthrough=yes per-connection-classifier=\
+    both-addresses:2/1
+add action=mark-routing chain=prerouting connection-mark=ISP1_conn in-interface=bridge1 \
+    new-routing-mark=ISP1
+add action=mark-routing chain=prerouting connection-mark=ISP2_conn in-interface=bridge1 \
+    new-routing-mark=ISP2
+add action=mark-routing chain=output connection-mark=ISP1_conn new-routing-mark=ISP1
+add action=mark-routing chain=output connection-mark=ISP2_conn new-routing-mark=ISP2
+add action=mark-connection chain=output dst-address=1.1.1.1 dst-port=53 new-connection-mark=dnsA \
+    passthrough=yes protocol=tcp
+add action=mark-connection chain=output dst-address=1.1.1.1 dst-port=53 new-connection-mark=dnsA \
+    passthrough=yes protocol=udp
+add action=mark-routing chain=output connection-mark=dnsA new-routing-mark=ISP1 passthrough=no
+add action=mark-connection chain=output dst-address=8.8.8.8 dst-port=53 new-connection-mark=\
+    dnsB passthrough=yes protocol=tcp
+add action=mark-connection chain=output dst-address=8.8.8.8 dst-port=53 new-connection-mark=\
+    dnsB passthrough=yes protocol=udp
+add action=mark-routing chain=output connection-mark=dnsB new-routing-mark=ISP2 passthrough=no
+
+/ip dns
+set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8
+
+/ip route
+add distance=1 gateway=1.1.1.1 routing-mark=ISP1 target-scope=25
+add distance=2 gateway=8.8.8.8 routing-mark=ISP1 target-scope=25
+add distance=1 gateway=8.8.8.8 routing-mark=ISP2 target-scope=25
+add distance=2 gateway=1.1.1.1 routing-mark=ISP2 target-scope=25
+add check-gateway=ping distance=1 gateway=1.1.1.1 target-scope=25
+add check-gateway=ping distance=2 gateway=8.8.8.8 target-scope=25
+add distance=1 dst-address=1.1.1.1/32 gateway=192.168.10.1 scope=25
+add distance=1 dst-address=8.8.8.8/32 gateway=192.168.20.1 scope=25
+
+Note :
+- in-interface=bridge1 adalah interface kearah user, jika memiliki lebih dari 1 port / ethernet kearah user maka buat address-list dan isi bagian in-interface-list sesuai nama di address-list.
+- lakukan penyesuaian dan pengecekkan IP Address - IP Gateway - IP DNS sebelum di copy paste ke terminal winbox.
