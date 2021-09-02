@@ -1,0 +1,10 @@
+:local parent [/queue simple find name=Global]
+:local network "192.168.0.0/24"
+:if ([:len $parent] = 0) do={/queue simple add name=Global max-limit=50M/50M target="$network" packet-marks=no-mark}
+#action
+:local queueName "Client-$leaseActMAC";
+:if ($leaseBound = "1") do={
+/queue simple add name=$queueName target=($leaseActIP . "/32") burst-limit=7000k/7000k burst-threshold=512k/512k burst-time=20s/20s limit-at=256k/256k max-limit=5120k/5120k parent=Global packet-marks=no-mark comment=[/ip dhcp-server lease get [find where active-mac-address=$leaseActMAC && active-address=$leaseActIP] host-name];
+} else={
+/queue simple remove $queueName
+}
