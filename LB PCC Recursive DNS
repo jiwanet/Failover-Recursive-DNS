@@ -57,15 +57,15 @@ add action=mark-routing chain=output connection-mark=dnsB new-routing-mark=ISP2 
 set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8
 
 /ip route
-add distance=1 gateway=1.1.1.1 routing-mark=ISP1 target-scope=25
-add distance=2 gateway=8.8.8.8 routing-mark=ISP1 target-scope=25
-add distance=1 gateway=8.8.8.8 routing-mark=ISP2 target-scope=25
-add distance=2 gateway=1.1.1.1 routing-mark=ISP2 target-scope=25
-add check-gateway=ping distance=1 gateway=1.1.1.1 target-scope=25
-add check-gateway=ping distance=2 gateway=8.8.8.8 target-scope=25
-add distance=1 dst-address=1.1.1.1/32 gateway=192.168.10.1 scope=25
-add distance=1 dst-address=8.8.8.8/32 gateway=192.168.20.1 scope=25
+add distance=1 gateway=1.1.1.1 routing-mark=ISP1 target-scope=30
+add distance=2 gateway=8.8.8.8 routing-mark=ISP1 target-scope=31
+add distance=1 gateway=8.8.8.8 routing-mark=ISP2 target-scope=31
+add distance=2 gateway=1.1.1.1 routing-mark=ISP2 target-scope=30
+add check-gateway=ping distance=1 gateway=1.1.1.1 target-scope=30
+add check-gateway=ping distance=2 gateway=8.8.8.8 target-scope=31
+add distance=1 dst-address=1.1.1.1/32 gateway=192.168.10.1 scope=30
+add distance=1 dst-address=8.8.8.8/32 gateway=192.168.20.1 scope=31
 
 Note :
-- in-interface=bridge1 adalah interface kearah user, jika memiliki lebih dari 1 port / ethernet kearah user maka buat address-list dan isi bagian in-interface-list sesuai nama di address-list.
+- jika memiliki lebih dari 1 port / ethernet kearah user maka buat address-list dan isi bagian in-interface-list sesuai nama di address-list.
 - lakukan penyesuaian dan pengecekkan IP Address - IP Gateway - IP DNS sebelum di copy paste ke terminal winbox.
